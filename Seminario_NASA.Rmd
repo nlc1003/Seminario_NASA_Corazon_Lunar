@@ -27,36 +27,59 @@ library(dplyr)
 library(jsonlite)  
 library(lunar)     
 
+# 1. Cargamos el CSV del INE protegiendo tildes y separador de miles (".")
 datos_ine <- read_delim("INPUT/DATA/infartos_españa.csv", 
                         delim = ";", 
-                        locale = locale(encoding = "ISO-8859-1"))
-infartos_limpio <- datos_ine %>%
-  filter(Provincias %in% c("09 Burgos", "28 Madrid", "41 Sevilla", "35 Palmas, Las", "15 Coruña, A"))
+                        locale = locale(encoding = "ISO-8859-1", grouping_mark = "."))
 
+# 2. Filtramos nuestras 4 provincias de contraste climático
+infartos_limpio <- datos_ine %>%
+  filter(Provincias %in% c("09 Burgos", "41 Sevilla", "35 Palmas, Las", "15 Coruña, A"))
+
+# Comprobación: salen las 4 provincias (3 filas cada una = 12 filas)
 table(infartos_limpio$Provincias)
 ```
 ```{r}
-# 1. Conectamos con el satélite
-datos_clima <- get_power(
-  community = "ag",
-  pars = c("T2M"),
-  lonlat = c(-3.69, 42.34),
-  dates = c("2023-01-01", "2023-12-31"),
-  temporal_api = "daily"
+# 1. Importación desde JSON
+json_burgos    <- fromJSON("INPUT/DATA/temperaturas_burgos.json", simplifyVector = TRUE)
+json_sevilla   <- fromJSON("INPUT/DATA/temperaturas_sevilla.json", simplifyVector = TRUE)
+json_coruna    <- fromJSON("INPUT/DATA/temperaturas_santiago.json", simplifyVector = TRUE)
+json_laspalmas <- fromJSON("INPUT/DATA/temperaturas_laspalmas.json", simplifyVector = TRUE)
+
+# Función propia para pasar cada lista JSON a tibble ordenado
+limpiar_json_nasa <- function(datos_json, nombre_provincia) {
+  lista_t2m     <- datos_json$properties$parameter$T2M
+  lista_t2m_min <- datos_json$properties$parameter$T2M_MIN
+  
+  tibble(
+    Provincias = nombre_provincia,
+    Fecha      = as.Date(names(lista_t2m), format = "%Y%m%d"),
+    T2M        = as.numeric(unlist(lista_t2m)),
+    T2M_MIN    = as.numeric(unlist(lista_t2m_min))
+  )
+}
+
+# 2. Convertimos los 5 JSON y los apilamos en una única tabla 
+clima_total <- bind_rows(
+  limpiar_json_nasa(json_burgos,    "09 Burgos"),
+  limpiar_json_nasa(json_sevilla,   "41 Sevilla"),
+  limpiar_json_nasa(json_coruna,    "15 Coruña, A"),
+  limpiar_json_nasa(json_laspalmas, "35 Palmas, Las")
 )
 
-# 2. Calculamos el Choque Térmico
-datos_choque <- datos_clima %>%
-  select(YEAR, MM, DD, T2M) %>%
+# 3. Calculamos Choque Térmico por provincia y Fase Lunar
+datos_ambientales <- clima_total %>%
+  group_by(Provincias) %>%
   mutate(
-    Fecha = make_date(YEAR, MM, DD),
-    Temp_Ayer = lag(T2M),             
-    Choque_Termico = T2M - Temp_Ayer  
+    Temp_Ayer      = lag(T2M),
+    Choque_Termico = T2M - Temp_Ayer,
+    Fase_Lunar     = lunar.phase(Fecha, name = TRUE)
   ) %>%
-  filter(!is.na(Choque_Termico)) 
+  ungroup() %>%
+  filter(!is.na(Choque_Termico))
 
-# 3. Visualizamos la tabla
-datatable(datos_choque)
+# 4. Visualizamos la tabla interactiva
+datatable(datos_ambientales)
 ```
 
 
