@@ -59,7 +59,7 @@ limpiar_json_nasa <- function(datos_json, nombre_provincia) {
   )
 }
 
-# 2. Convertimos los 5 JSON y los apilamos en una única tabla 
+# 2. Convertimos los 4 JSON y los apilamos en una única tabla 
 clima_total <- bind_rows(
   limpiar_json_nasa(json_burgos,    "09 Burgos"),
   limpiar_json_nasa(json_sevilla,   "41 Sevilla"),
@@ -81,5 +81,32 @@ datos_ambientales <- clima_total %>%
 # 4. Visualizamos la tabla interactiva
 datatable(datos_ambientales)
 ```
+```{r}
+# 1. Resumimos el comportamiento climático y lunar por provincia 
+resumen_ambiental <- datos_ambientales %>%
+  group_by(Provincias) %>%
+  summarise(
+    Temp_Media         = round(mean(T2M, na.rm = TRUE), 2),
+    Temp_Min_Absoluta  = min(T2M_MIN, na.rm = TRUE),
+    Choque_Max_Caida   = round(min(Choque_Termico, na.rm = TRUE), 2),
+    Dias_Choque_Brusco = sum(abs(Choque_Termico) >= 3, na.rm = TRUE),
+    Dias_Luna_Llena    = sum(Fase_Lunar == "Full", na.rm = TRUE),
+    .groups = "drop"
+  )
 
+# 2. Unión de datos clínicos y satelitales/lunares 
+# Tabla completa (incluye Ambos sexos, Hombres y Mujeres)
+estudio_por_sexo <- infartos_limpio %>%
+  left_join(resumen_ambiental, by = "Provincias")
+
+# Tabla filtrada solo para el total general ("Ambos sexos")
+estudio_completo <- estudio_por_sexo %>%
+  filter(Sexo == "Ambos sexos")
+
+# 3. Exportamos la tabla integrada a OUTPUT/ 
+write_csv(estudio_por_sexo, file = "OUTPUT/estudio_integrado_infartos_nasa.csv")
+
+# 4. Visualizamos la tabla interactiva resultante
+datatable(estudio_completo)
+```
 
