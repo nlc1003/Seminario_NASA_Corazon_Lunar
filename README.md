@@ -19,4 +19,6 @@ Este proyecto sigue un flujo de trabajo reproducible en RStudio y se organiza de
   * `temperaturas_*.json`: Series diarias de temperatura media (`T2M`) y mínima (`T2M_MIN`) en formato GeoJSON descargadas de NASA/POWER para las cinco ubicaciones de estudio.
 * `OUTPUT/`: Directorio destinado a almacenar las tablas procesadas, gráficas (`ggplot2`) y resultados exportados.
 * `Seminario_NASA_Corazon.Rproj`: Archivo de configuración del proyecto en RStudio para garantizar rutas relativas reproducibles.
-* `Seminario_NASA.Rmd`: Documento principal en RMarkdown que integra la narrativa científica, el procesamiento con `tidyverse` (`dplyr`, `readr`), el parseo de datos semiestructurados (`jsonlite`), el cálculo lunar (`lunar`) y las tablas interactivas (`DT`).
+* `Seminario_NASA.Rmd`: Documento principal en RMarkdown que integra la narrativa científica, el procesamiento con `tidyverse` (`dplyr`, `readr`), el parseo de datos semiestructurados (`jsonlite`), el cálculo lunar (`lunar`) y las tablas interactivas (`DT
+
+Para este estudio, finalmente se analizaron 4 provincias de contraste climático (09 Burgos, 15 Coruña, A, 35 Palmas, Las y 41 Sevilla) tras auditar la disponibilidad de datos en el INE.
