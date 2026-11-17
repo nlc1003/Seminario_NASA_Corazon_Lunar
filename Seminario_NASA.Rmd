@@ -9,11 +9,39 @@ output:
     toc_depth: 3
     theme: flatly
 ---
-<style> body { text-align: justify} </style>
+```{css, echo=FALSE}
+body { 
+  text-align: justify;
+  background-image: url("FondoSeminario.jpg");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+.main-container {
+  background-color: rgba(255, 255, 255, 0.92);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0px 0px 15px rgba(0,0,0,0.5);
+}
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
+
+# 1. Introducción
+
+## 1.1 Contexto Teórico
+El estrés térmico y las variaciones bruscas de temperatura afectan directamente a la fisiología cardiovascular. La exposición a temperaturas extremas y los choques térmicos interdiarios desencadenan respuestas de vasoconstricción y alteraciones en la presión arterial, incrementando el riesgo de sufrir un infarto agudo de miocardio.
+
+## 1.2 Objetivos
+**Objetivo General:**
+Analizar el impacto del estrés térmico ambiental y las fases lunares en la incidencia cardiovascular aguda.
+
+**Objetivos Específicos:**
+1. Comparar la morbilidad por infarto agudo de miocardio en 4 provincias españolas de contraste climático (Burgos, A Coruña, Las Palmas y Sevilla).
+2. Integrar bases de datos epidemiológicas brutas con telemetría satelital diaria.
+3. Evaluar la influencia del choque térmico interdiario y las temperaturas mínimas en los ingresos hospitalarios.
 ```{r}
 if (!require("nasapower")) install.packages("nasapower")
 if (!require("tidyverse")) install.packages("tidyverse")
