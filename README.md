@@ -9,7 +9,7 @@ La biometeorología humana estudia la interacción entre las variables atmosfér
 
 ## Objetivos
 1. **Evaluación del choque térmico:** Analizar la relación entre los episodios de frío extremo, los cambios bruscos de temperatura interdiarios ($\Delta T$) y la incidencia hospitalaria por eventos cardiovasculares.
-2. **Contraste geográfico y climático:** Comparar el comportamiento epidemiológico entre cinco provincias españolas con perfiles climáticos opuestos: **Burgos** (continental frío), **Madrid** (continental mesetario), **Sevilla** (mediterráneo cálido), **A Coruña** (oceánico húmedo) y **Las Palmas** (subtropical estable).
+2. **Contraste geográfico y climático:** Comparar el comportamiento epidemiológico entre cinco provincias españolas con perfiles climáticos opuestos: **Burgos** (continental frío), **Sevilla** (mediterráneo cálido), **A Coruña** (oceánico húmedo) y **Las Palmas** (subtropical estable).
 3. **Exploración de variables cronobiológicas:** Incorporar el cálculo algorítmico de las **fases lunares** mediante el paquete `lunar` de R para evaluar posibles correlaciones o efectos confusores junto al estrés térmico.
 
 ## Estructura del repositorio
