@@ -199,54 +199,77 @@ rm(list = ls())
 load("OUTPUT/datos_seminario.RData")
 ls()
 ```
-
 # 3. Resultados y Análisis Visual
 
-```{r}
-# GRÁFICA 1: Incidencia de Infartos vs Temperatura Media, Choque Térmico y Lunas Llenas
-grafico_principal <- ggplot(estudio_completo, aes(x = reorder(Provincias, -Total), y = Total, fill = Temp_Media)) +
+```{r resultados_graficos}
+datatable(estudio_completo, options = list(dom = "t", scrollX = TRUE))
+
+# GRÁFICA 1: Tasa Ajustada de Infartos (por 100.000 hab.) vs Perfil Térmico y Lunar
+grafico_principal <- ggplot(estudio_completo, aes(x = reorder(Provincias, -Tasa_100k), y = Tasa_100k, fill = Temp_Media)) +
   geom_col(colour = "black") +
   geom_text(
-    aes(label = paste0("Choque máx: ", Choque_Max_Caida, "°C\nLunas llenas: ", Dias_Luna_Llena)),
-    vjust = -0.3,
-    size = 3.2
+    aes(label = paste0(Tasa_100k, " / 100k\nChoque máx: ", Choque_Max_Caida, "°C\nLunas llenas: ", Dias_Luna_Llena)),
+    vjust = -0.25,
+    size = 3.1
   ) +
   scale_fill_gradient(low = "steelblue", high = "firebrick") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.20))) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.28))) +
   labs(
-    title = "Incidencia de Infarto Agudo de Miocardio según Perfil Térmico y Lunar",
-    subtitle = "Comparativa en 4 provincias españolas de contraste climático (INE y NASA/POWER)",
+    title = "Tasa Ajustada de Infarto Agudo de Miocardio según Perfil Térmico y Lunar",
+    subtitle = "Altas hospitalarias por cada 100.000 habitantes en 4 provincias de contraste climático",
     x = "Provincia",
-    y = "Total de Altas Hospitalarias (Ambos sexos)",
+    y = "Tasa de Altas por 100.000 habitantes",
     fill = "Temp. Media (°C)"
   ) +
   theme_classic()
 
 grafico_principal
-# GRÁFICA 2: Comparativa de Incidencia Cardiovascular por Sexo y Provincia 
+
+# GRÁFICA 2: Comparativa de Tasa Ajustada por Sexo y Provincia
 grafico_sexo <- estudio_por_sexo %>%
   filter(Sexo != "Ambos sexos") %>%
-  ggplot(aes(x = reorder(Provincias, -Total), y = Total, fill = Sexo)) +
+  ggplot(aes(x = reorder(Provincias, -Tasa_100k), y = Tasa_100k, fill = Sexo)) +
   geom_col(position = "dodge", colour = "black") +
+  geom_text(
+    aes(label = Tasa_100k),
+    position = position_dodge(width = 0.9),
+    vjust = -0.4,
+    size = 3.1
+  ) +
   scale_fill_brewer(palette = "Paired") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
   labs(
-    title = "Distribución de Altas Hospitalarias por Infarto Agudo de Miocardio según Sexo",
-    subtitle = "Desglose epidemiológico por provincia de estudio (Datos INE)",
+    title = "Tasa de Altas Hospitalarias por Infarto Agudo de Miocardio según Sexo",
+    subtitle = "Incidencia ajustada por cada 100.000 habitantes de cada sexo (Datos INE)",
     x = "Provincia",
-    y = "Número de Altas Hospitalarias",
+    y = "Tasa por 100.000 habitantes",
     fill = "Sexo"
   ) +
   theme_classic()
 
 grafico_sexo
 
-# Guardamos ambas gráficas en la carpeta OUTPUT/ (Práctica 06: ggsave)
-ggsave(filename = "grafico_infartos_clima_luna.png", plot = grafico_principal, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
-ggsave(filename = "grafico_infartos_sexo.png", plot = grafico_sexo, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
-```
-**Observaciones de los datos:**
-Tal y como se observa en las visualizaciones, Sevilla presenta el mayor volumen total de ingresos, un dato esperado debido a su mayor tamaño poblacional. En el análisis climático, Burgos destaca registrando las temperaturas mínimas más bajas y los choques térmicos más acusados. Por otro lado, la distribución por sexos muestra que la incidencia en hombres supera claramente a la de mujeres en todas las provincias. Finalmente, los días de luna llena son homogéneos entre provincias al ser un fenómeno astronómico global.
+# GRÁFICA 3 (SCATTER PLOT): Relación entre Choque Térmico Máximo y Tasa de Infartos
+grafico_dispersion <- ggplot(estudio_completo, aes(x = Choque_Max_Caida, y = Tasa_100k)) +
+  geom_point(aes(color = Provincias), size = 4.5) +
+  geom_smooth(method = "lm", se = FALSE, color = "darkgray", linetype = "dashed") +
+  geom_text(aes(label = Provincias), vjust = -1.1, size = 3.4) +
+  scale_y_continuous(expand = expansion(mult = c(0.15, 0.20))) +
+  scale_x_continuous(expand = expansion(mult = c(0.15, 0.15))) +
+  labs(
+    title = "Relación entre la Severidad del Choque Térmico y la Tasa de Infartos",
+    subtitle = "Regresión lineal entre la caída térmica máxima interdiaria (ΔT) y la tasa por 100.000 hab.",
+    x = "Choque Térmico Máximo Interdiario — Caída ΔT (°C)",
+    y = "Tasa de Altas por 100.000 habitantes",
+    color = "Provincia"
+  ) +
+  theme_classic() +
+  theme(legend.position = "none")
 
-# 4. Conclusiones
-En conclusión, el análisis exploratorio muestra claras diferencias térmicas e incidencias brutas variables según la geografía y el sexo. Sin embargo, hay que señalar como limitación metodológica fundamental que las cifras del INE utilizadas son valores brutos provinciales totales y de periodicidad agregada. Al no ser tasas ajustadas por cada 100.000 habitantes, no es posible establecer comparaciones directas de riesgo poblacional real entre provincias de distinto tamaño.
+grafico_dispersion
+
+# Guardamos las 3 gráficas en la carpeta OUTPUT/
+ggsave(filename = "grafico_1_tasa_clima_luna.png", plot = grafico_principal, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
+ggsave(filename = "grafico_2_tasa_sexo.png", plot = grafico_sexo, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
+ggsave(filename = "grafico_3_dispersion_choque.png", plot = grafico_dispersion, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
+```
