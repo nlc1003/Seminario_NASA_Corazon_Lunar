@@ -42,39 +42,88 @@ Analizar el impacto del estrés térmico ambiental y las fases lunares en la inc
 1. Comparar la morbilidad por infarto agudo de miocardio en 4 provincias españolas de contraste climático (Burgos, A Coruña, Las Palmas y Sevilla).
 2. Integrar bases de datos epidemiológicas brutas con telemetría satelital diaria.
 3. Evaluar la influencia del choque térmico interdiario y las temperaturas mínimas en los ingresos hospitalarios.
-```{r}
-if (!require("nasapower")) install.packages("nasapower")
-if (!require("tidyverse")) install.packages("tidyverse")
-if (!require("DT")) install.packages("DT")
 
-library(nasapower)
+# 2. Metodología e Integración de Datos
+
+## 2.1. Fuentes de datos y auditoría de metadatos
+El flujo de trabajo se estructura dentro del proyecto de RStudio empleando exclusivamente **rutas relativas** (`INPUT/DATA/` y `OUTPUT/`), evitando el uso de `setwd()` para garantizar la reproducibilidad del análisis.
+
+Se han integrado tres fuentes heterogéneas de datos:
+1. **Morbilidad hospitalaria (`infartos_españa.csv`):** Altas hospitalarias por infarto agudo de miocardio procedentes del Instituto Nacional de Estadística (INE).
+2. **Demografía provincial (`poblacion_provincias.csv`):** Cifras oficiales de población del INE a 1 de julio de 2024 desagregadas por provincia y sexo, indispensables para transformar los recuentos brutos en tasas comparables por cada 100.000 habitantes.
+3. **Telemetría satelital (`temperaturas_*.json`):** Series diarias de temperatura media a 2 metros (`T2M`) y temperatura mínima (`T2M_MIN`) obtenidas del proyecto **NASA/POWER** en formato GeoJSON.
+```{r cargar_ine, results='hide'}
 library(tidyverse)
+library(jsonlite)
+library(lunar)
 library(DT)
-library(readr)     
-library(dplyr)     
-library(jsonlite)  
-library(lunar)     
 
-# 1. Cargamos el CSV del INE protegiendo tildes y separador de miles (".")
-datos_ine <- read_delim("INPUT/DATA/infartos_españa.csv", 
-                        delim = ";", 
-                        locale = locale(encoding = "ISO-8859-1", grouping_mark = "."))
+# 1. Importamos el CSV de infartos del INE protegiendo tildes y separador de miles (".")
+datos_ine <- read_delim(
+  "INPUT/DATA/infartos_españa.csv", 
+  delim = ";", 
+  locale = locale(encoding = "ISO-8859-1", grouping_mark = ".")
+)
 
-# 2. Filtramos nuestras 4 provincias de contraste climático
+# 2. Importamos el CSV de población del INE
+datos_poblacion <- read_delim(
+  "INPUT/DATA/poblacion_provincias.csv", 
+  delim = ";", 
+  locale = locale(encoding = "ISO-8859-1", grouping_mark = ".")
+)
+
+# 3. Inspección de estructura y valores nulos (auditoría de metadatos INE)
+str(datos_ine)
+colSums(is.na(datos_ine))
+
+# 4. Filtramos las 4 provincias de estudio y estandarizamos la categoría "Ambos sexos"
+provincias_estudio <- c("09 Burgos", "41 Sevilla", "35 Palmas, Las", "15 Coruña, A")
+
 infartos_limpio <- datos_ine %>%
-  filter(Provincias %in% c("09 Burgos", "41 Sevilla", "35 Palmas, Las", "15 Coruña, A"))
+  filter(Provincias %in% provincias_estudio)
 
-# Comprobación: salen las 4 provincias (3 filas cada una = 12 filas)
+poblacion_limpio <- datos_poblacion %>%
+  filter(
+    Provincias %in% provincias_estudio,
+    `Edad simple` == "Todas las edades"
+  ) %>%
+  mutate(Sexo = ifelse(Sexo == "Total", "Ambos sexos", Sexo)) %>%
+  select(Provincias, Sexo, Poblacion = Total)
+
+# Comprobamos que ambas tablas tienen 12 filas (4 provincias x 3 categorías de sexo)
 table(infartos_limpio$Provincias)
-```
-```{r}
-# 1. Importación desde JSON
+table(poblacion_limpio$Provincias)
+
+# 1. Importación de los 4 GeoJSON
 json_burgos    <- fromJSON("INPUT/DATA/temperaturas_burgos.json", simplifyVector = TRUE)
 json_sevilla   <- fromJSON("INPUT/DATA/temperaturas_sevilla.json", simplifyVector = TRUE)
 json_coruna    <- fromJSON("INPUT/DATA/temperaturas_santiago.json", simplifyVector = TRUE)
 json_laspalmas <- fromJSON("INPUT/DATA/temperaturas_laspalmas.json", simplifyVector = TRUE)
 
-# Función propia para pasar cada lista JSON a tibble ordenado
+# 2. Función propia para extraer metadatos espaciales y técnicos de cada JSON
+extraer_metadatos_nasa <- function(datos_json, nombre_provincia) {
+  coords <- datos_json$geometry$coordinates
+  tibble(
+    Provincia       = nombre_provincia,
+    Longitud        = coords[1],
+    Latitud         = coords[2],
+    Altitud_m       = coords[3],
+    Fuente          = datos_json$header$title,
+    Valor_Nulo_NASA = datos_json$header$fill_value,
+    Unidad          = datos_json$parameters$T2M$units
+  )
+}
+
+tabla_metadatos <- bind_rows(
+  extraer_metadatos_nasa(json_burgos,    "09 Burgos"),
+  extraer_metadatos_nasa(json_sevilla,   "41 Sevilla"),
+  extraer_metadatos_nasa(json_coruna,    "15 Coruña, A"),
+  extraer_metadatos_nasa(json_laspalmas, "35 Palmas, Las")
+)
+
+datatable(tabla_metadatos, options = list(dom = "t", scrollX = TRUE))
+
+# 3. Función propia para transformar las series diarias JSON en tabla ordenada
 limpiar_json_nasa <- function(datos_json, nombre_provincia) {
   lista_t2m     <- datos_json$properties$parameter$T2M
   lista_t2m_min <- datos_json$properties$parameter$T2M_MIN
@@ -87,7 +136,6 @@ limpiar_json_nasa <- function(datos_json, nombre_provincia) {
   )
 }
 
-# 2. Convertimos los 4 JSON y los apilamos en una única tabla 
 clima_total <- bind_rows(
   limpiar_json_nasa(json_burgos,    "09 Burgos"),
   limpiar_json_nasa(json_sevilla,   "41 Sevilla"),
@@ -95,8 +143,12 @@ clima_total <- bind_rows(
   limpiar_json_nasa(json_laspalmas, "35 Palmas, Las")
 )
 
-# 3. Calculamos Choque Térmico por provincia y Fase Lunar
+# 4. Control de calidad (-999 -> NA) y cálculo de Choque Térmico y Fase Lunar
 datos_ambientales <- clima_total %>%
+  mutate(
+    T2M     = ifelse(T2M == -999, NA, T2M),
+    T2M_MIN = ifelse(T2M_MIN == -999, NA, T2M_MIN)
+  ) %>%
   group_by(Provincias) %>%
   mutate(
     Temp_Ayer      = lag(T2M),
@@ -106,43 +158,47 @@ datos_ambientales <- clima_total %>%
   ungroup() %>%
   filter(!is.na(Choque_Termico))
 
-# 4. Visualizamos la tabla interactiva
-datatable(datos_ambientales)
-```
-```{r}
-# 1. Resumimos el comportamiento climático y lunar por provincia 
+
+
+# 1. Resumen ambiental por provincia
 resumen_ambiental <- datos_ambientales %>%
   group_by(Provincias) %>%
   summarise(
     Temp_Media         = round(mean(T2M, na.rm = TRUE), 2),
-    Temp_Min_Absoluta  = min(T2M_MIN, na.rm = TRUE),
+    Temp_Min_Absoluta  = round(min(T2M_MIN, na.rm = TRUE), 2),
     Choque_Max_Caida   = round(min(Choque_Termico, na.rm = TRUE), 2),
     Dias_Choque_Brusco = sum(abs(Choque_Termico) >= 3, na.rm = TRUE),
     Dias_Luna_Llena    = sum(Fase_Lunar == "Full", na.rm = TRUE),
     .groups = "drop"
   )
 
-# 2. Unión de datos clínicos y satelitales/lunares 
-# Tabla completa (incluye Ambos sexos, Hombres y Mujeres)
+# 2. Unión de infartos + población + indicadores climáticos y cálculo de Tasa_100k
 estudio_por_sexo <- infartos_limpio %>%
-  left_join(resumen_ambiental, by = "Provincias")
+  left_join(poblacion_limpio, by = c("Provincias", "Sexo")) %>%
+  left_join(resumen_ambiental, by = "Provincias") %>%
+  mutate(Tasa_100k = round((Total / Poblacion) * 100000, 2))
 
-# Tabla filtrada solo para el total general ("Ambos sexos")
+# Tabla filtrada para ambos sexos
 estudio_completo <- estudio_por_sexo %>%
   filter(Sexo == "Ambos sexos")
 
-# 3. Exportamos la tabla integrada a OUTPUT/ 
+# 3. Exportamos el dataset integrado a CSV
 write_csv(estudio_por_sexo, file = "OUTPUT/estudio_integrado_infartos_nasa.csv")
 
-# 4. Visualizamos la tabla interactiva resultante
-datatable(estudio_completo)
+# 4. Guardamos objetos en .RData, vaciamos el Global Environment y restablecemos
+save(
+  tabla_metadatos,
+  datos_ambientales,
+  resumen_ambiental,
+  estudio_por_sexo,
+  estudio_completo,
+  file = "OUTPUT/datos_seminario.RData"
+)
+
+rm(list = ls())
+load("OUTPUT/datos_seminario.RData")
+ls()
 ```
-
-# 1. Introducción y Objetivos
-La hipótesis principal de este estudio es analizar cómo las temperaturas extremas, el choque térmico interdiario ($\Delta T$) y las fases lunares se relacionan con la morbilidad por infarto agudo de miocardio. Para ello, se comparan 4 climas distintos de España: el clima continental frío en Burgos, el oceánico en A Coruña, el subtropical en Las Palmas y el mediterráneo cálido en Sevilla.
-
-# 2. Metodología e Integración de Datos
-Para este análisis se han utilizado registros de morbilidad provenientes del archivo `infartos_españa.csv` del INE, cruzados con datos de telemetría satelital diaria de NASA/POWER en formato GeoJSON. El cálculo algorítmico de las fases lunares se ha realizado mediante el paquete `lunar` de R. Posteriormente, todas las fuentes se han unificado en un único conjunto de datos utilizando la función `left_join()`.
 
 # 3. Resultados y Análisis Visual
 

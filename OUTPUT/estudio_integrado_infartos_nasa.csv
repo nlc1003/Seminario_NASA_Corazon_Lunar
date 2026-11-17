@@ -1,13 +1,13 @@
-Sexo,Diagnóstico principal (CIE10MC),Total Nacional,Comunidades y Ciudades Autónomas,Provincias,Total,Temp_Media,Temp_Min_Absoluta,Choque_Max_Caida,Dias_Choque_Brusco,Dias_Luna_Llena
-Ambos sexos,0903 Infarto agudo de miocardio I21-I22,Total Nacional,01 Andalucía,41 Sevilla,2365,17.36,1.28,-5.57,19,45
-Ambos sexos,0903 Infarto agudo de miocardio I21-I22,Total Nacional,05 Canarias,"35 Palmas, Las",1623,20.11,16.58,-1.08,0,45
-Ambos sexos,0903 Infarto agudo de miocardio I21-I22,Total Nacional,07 Castilla y León,09 Burgos,416,9.85,-6.23,-7.66,39,45
-Ambos sexos,0903 Infarto agudo de miocardio I21-I22,Total Nacional,12 Galicia,"15 Coruña, A",1685,12.65,-0.86,-3.99,13,45
-Hombres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,01 Andalucía,41 Sevilla,1559,17.36,1.28,-5.57,19,45
-Hombres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,05 Canarias,"35 Palmas, Las",1216,20.11,16.58,-1.08,0,45
-Hombres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,07 Castilla y León,09 Burgos,324,9.85,-6.23,-7.66,39,45
-Hombres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,12 Galicia,"15 Coruña, A",1214,12.65,-0.86,-3.99,13,45
-Mujeres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,01 Andalucía,41 Sevilla,806,17.36,1.28,-5.57,19,45
-Mujeres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,05 Canarias,"35 Palmas, Las",407,20.11,16.58,-1.08,0,45
-Mujeres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,07 Castilla y León,09 Burgos,92,9.85,-6.23,-7.66,39,45
-Mujeres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,12 Galicia,"15 Coruña, A",470,12.65,-0.86,-3.99,13,45
+Sexo,Diagnóstico principal (CIE10MC),Total Nacional,Comunidades y Ciudades Autónomas,Provincias,Total,Poblacion,Temp_Media,Temp_Min_Absoluta,Choque_Max_Caida,Dias_Choque_Brusco,Dias_Luna_Llena,Tasa_100k
+Ambos sexos,0903 Infarto agudo de miocardio I21-I22,Total Nacional,01 Andalucía,41 Sevilla,2365,1971903,17.36,1.28,-5.57,19,45,119.93
+Ambos sexos,0903 Infarto agudo de miocardio I21-I22,Total Nacional,05 Canarias,"35 Palmas, Las",1623,1165222,20.11,16.58,-1.08,0,45,139.29
+Ambos sexos,0903 Infarto agudo de miocardio I21-I22,Total Nacional,07 Castilla y León,09 Burgos,416,360525,9.85,-6.23,-7.66,39,45,115.39
+Ambos sexos,0903 Infarto agudo de miocardio I21-I22,Total Nacional,12 Galicia,"15 Coruña, A",1685,1130214,12.65,-0.86,-3.99,13,45,149.09
+Hombres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,01 Andalucía,41 Sevilla,1559,961899,17.36,1.28,-5.57,19,45,162.08
+Hombres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,05 Canarias,"35 Palmas, Las",1216,578824,20.11,16.58,-1.08,0,45,210.08
+Hombres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,07 Castilla y León,09 Burgos,324,180348,9.85,-6.23,-7.66,39,45,179.65
+Hombres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,12 Galicia,"15 Coruña, A",1214,541469,12.65,-0.86,-3.99,13,45,224.2
+Mujeres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,01 Andalucía,41 Sevilla,806,1010004,17.36,1.28,-5.57,19,45,79.8
+Mujeres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,05 Canarias,"35 Palmas, Las",407,586398,20.11,16.58,-1.08,0,45,69.41
+Mujeres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,07 Castilla y León,09 Burgos,92,180177,9.85,-6.23,-7.66,39,45,51.06
+Mujeres,0903 Infarto agudo de miocardio I21-I22,Total Nacional,12 Galicia,"15 Coruña, A",470,588745,12.65,-0.86,-3.99,13,45,79.83
