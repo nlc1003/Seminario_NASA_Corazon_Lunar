@@ -273,3 +273,15 @@ ggsave(filename = "grafico_1_tasa_clima_luna.png", plot = grafico_principal, pat
 ggsave(filename = "grafico_2_tasa_sexo.png", plot = grafico_sexo, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
 ggsave(filename = "grafico_3_dispersion_choque.png", plot = grafico_dispersion, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
 ```
+*Observaciones de los datos:*
+Al ajustar las cifras por cada 100.000 habitantes (Tasa_100k), se elimina el sesgo del tamaño poblacional de Sevilla y emerge el verdadero patrón epidemiológico y climático: provincias con mayor estrés térmico invernal o amplitud térmica como Burgos y A Coruña muestran tasas relativas superiores frente a climas subtropicales estables como Las Palmas. El gráfico de dispersión con ajuste lineal confirma la tendencia entre caídas interdiarias bruscas de temperatura (valores más negativos de $\Delta T$) y mayores tasas de incidencia hospitalaria. Por otro lado, la tasa ajustada en hombres duplica ampliamente a la de mujeres en todas las provincias, mientras que el número de lunas llenas resulta idéntico en todo el territorio.
+
+# 4. Conclusiones
+1. *Importancia de la estandarización demográfica:* El cálculo de tasas por 100.000 habitantes demuestra que los recuentos absolutos enmascaran el riesgo real; al ajustar por población, los perfiles térmicos fríos y con mayor choque térmico interdiario presentan mayor carga relativa de ingresos por infarto agudo de miocardio.
+2. *Desigualdad por sexo y ausencia de efecto lunar:* La incidencia ajustada mantiene una marcada brecha epidemiológica desfavorable para los varones en las cuatro geografías estudiadas, mientras que el ciclo lunar no muestra variabilidad diferencial asociada al fenómeno.
+3. *Limitación metodológica (granularidad temporal):* Aunque las tasas están ajustadas poblacionalmente, los registros del INE tienen periodicidad anual agregada frente a la resolución diaria de NASA/POWER, por lo que los resultados describen asociaciones ecológicas provinciales y no causalidad clínica individual día a día.
+
+# 5. Referencias
+* Instituto Nacional de Estadística (INE). (2024). Altas hospitalarias por diagnóstico, provincia y sexo.
+* Instituto Nacional de Estadística (INE). (2024). Cifras oficiales de población por provincias.
+* NASA Prediction Of Worldwide Energy Resources (POWER). (2024). Telemetría satelital de temperaturas a 2 metros (T2M).
