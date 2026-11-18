@@ -57,7 +57,8 @@ library(tidyverse)
 library(jsonlite)
 library(lunar)
 library(DT)
-
+library(plotly)
+library(patchwork)
 # 1. Importamos el CSV de infartos del INE protegiendo tildes y separador de miles (".")
 datos_ine <- read_delim(
   "INPUT/DATA/infartos_españa.csv", 
@@ -272,6 +273,21 @@ grafico_dispersion
 ggsave(filename = "grafico_1_tasa_clima_luna.png", plot = grafico_principal, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
 ggsave(filename = "grafico_2_tasa_sexo.png", plot = grafico_sexo, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
 ggsave(filename = "grafico_3_dispersion_choque.png", plot = grafico_dispersion, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
+# 1. Interactividad para el scatter plot
+grafico_dispersion_interactivo <- ggplotly(grafico_dispersion, tooltip = "text") %>%
+  layout(
+    hoverlabel = list(bgcolor = "white", bordercolor = "black", font = list(color = "black"))
+  )
+grafico_dispersion_interactivo
+
+# 2. Composición de gráficos estáticos (Barras General + Barras Sexo)
+composicion_graficos <- grafico_principal / grafico_sexo + 
+  plot_annotation(
+    title = 'IMPACTO DEL ESTRÉS TÉRMICO Y SEXO EN LA SALUD CARDIOVASCULAR',
+    theme = theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+  )
+
+composicion_graficos
 ```
 *Observaciones de los datos:*
 Al ajustar las cifras por cada 100.000 habitantes (Tasa_100k), se elimina el sesgo del tamaño poblacional de Sevilla y emerge el verdadero patrón epidemiológico y climático: provincias con mayor estrés térmico invernal o amplitud térmica como Burgos y A Coruña muestran tasas relativas superiores frente a climas subtropicales estables como Las Palmas. El gráfico de dispersión con ajuste lineal confirma la tendencia entre caídas interdiarias bruscas de temperatura (valores más negativos de $\Delta T$) y mayores tasas de incidencia hospitalaria. Por otro lado, la tasa ajustada en hombres duplica ampliamente a la de mujeres en todas las provincias, mientras que el número de lunas llenas resulta idéntico en todo el territorio.
