@@ -46,6 +46,7 @@ Variable de control: por indicación del profesor se incluye además una variabl
 Explorar si existe relación entre el perfil térmico de cuatro provincias españolas de clima contrastado y su tasa bruta de altas hospitalarias por infarto agudo de miocardio (IAM), incluyendo una variable de control sin relación causal plausible (la fase lunar).
 
 **Objetivos Específicos:**
+
 1. Comparar la morbilidad por infarto agudo de miocardio en 4 provincias españolas de contraste climático (Burgos, A Coruña, Las Palmas y Sevilla).
 2. Integrar bases de datos epidemiológicas del INE con series climáticas diarias de NASA/POWER (reanálisis MERRA-2).
 3. Describir, mediante indicadores térmicos (temperatura media y mínima, caída máxima interdiaria y número de días con cambios bruscos de al menos 3 °C), si los perfiles más extremos se corresponden con tasas de altas más altas.
@@ -59,7 +60,7 @@ El flujo de trabajo se estructura dentro del proyecto de RStudio empleando exclu
 Se han integrado tres fuentes heterogéneas de datos:
 1. **Morbilidad hospitalaria (`infartos_españa.csv`):** Altas hospitalarias por infarto agudo de miocardio (CIE-10-MC I21-I22) procedentes del Instituto Nacional de Estadística (INE), correspondientes al año 2024.
 2. **Demografía provincial (`poblacion_provincias.csv`):** Cifras oficiales de población del INE a 1 de julio de 2024 desagregadas por provincia y sexo, indispensables para transformar los recuentos brutos en tasas comparables por cada 100.000 habitantes.
-3. **Datos climáticos (`temperaturas_*.json`):** Series diarias de temperatura media a 2 metros (`T2M`) y temperatura mínima (`T2M_MIN`) del proyecto **NASA/POWER** en formato GeoJSON, del 1 de enero al 12 de julio de 2024 ((194 días; el primer día se pierde al calcular el choque térmico, por lo que los indicadores se calculan sobre 193). Proceden del reanálisis MERRA-2, un modelo atmosférico que asimila observaciones de satélite y de superficie, por lo que no son mediciones directas de una estación.
+3. **Datos climáticos (`temperaturas_*.json`):** Series diarias de temperatura media a 2 metros (`T2M`) y temperatura mínima (`T2M_MIN`) del proyecto **NASA/POWER** en formato GeoJSON, del 1 de enero al 12 de julio de 2024 (194 días; el primer día se pierde al calcular el choque térmico, por lo que los indicadores se calculan sobre 193). Proceden del reanálisis MERRA-2, un modelo atmosférico que asimila observaciones de satélite y de superficie, por lo que no son mediciones directas de una estación.
 
 **Nota sobre las coordenadas:** el archivo `temperaturas_santiago.json` corresponde a Santiago de Compostela (42,887 N; -8,568 E; 227 m), que es el punto que representa a la provincia de A Coruña en este trabajo. Burgos se sitúa a 918 m de altitud, lo que contribuye a su perfil frío.
 
@@ -225,12 +226,21 @@ ls()
 ```
 # 3. Resultados y Análisis Visual
 
-A continuación se presentan los resultados integrados mediante tablas, gráficos interactivos y mapas. Al comparar solo cuatro provincias, el análisis es exploratorio.
+La homeostasis cardiovascular depende estrechamente de la termorregulación. Ante descensos térmicos ambientales, la activación de termorreceptores cutáneos desencadena una descarga simpática reflejada en vasoconstricción periférica $\alpha$-adrenérgica, aumento de la resistencia vascular periférica y elevación de la presión arterial sistólica y diastólica. Este fenómeno incrementa abruptamente la **poscarga del ventrículo izquierdo** y la demanda miocárdica de oxígeno, favoreciendo la rotura de placas ateroscleróticas vulnerables y la trombosis coronaria.
+
+A continuación se presentan los resultados integrados mediante tablas, gráficos interactivos y mapas. Al comparar solo cuatro provincias mediante tasas brutas, el análisis es exploratorio.
 
 ## 3.1 Tabla de Datos Integrados
+
 ```{r tabla_resultados, echo=TRUE}
 datatable(estudio_completo, options = list(dom = "t", scrollX = TRUE))
 ```
+
+## 3.2 Análisis Visual y Exploración Fisiopatológica {.tabset .tabset-fade .tabset-pills}
+
+### Perfil Térmico y Tasa Bruta
+
+**Justificación fisiológica:** La exposición sostenida a temperaturas medias bajas (`T2M`) induce un estado basal de hiperactividad simpática, hemoconcentración y aumento de factores procoagulantes (fibrinógeno y viscosidad plasmática), lo que teóricamente incrementaría la incidencia acumulada de eventos isquémicos. Esta primera visualización contrasta la tasa bruta de altas hospitalarias frente a la temperatura media y la frecuencia de episodios bruscos en cada provincia.
 
 ```{r grafico_principal, echo=TRUE}
 # GRÁFICA 1: Tasa bruta de altas por IAM (por 100.000 hab.) vs Perfil Térmico
@@ -255,6 +265,10 @@ grafico_principal <- ggplot(estudio_completo, aes(x = reorder(Provincias, -Tasa_
 ggsave(filename = "grafico_1_tasa_clima.png", plot = grafico_principal, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
 grafico_principal
 ```
+
+### Estratificación por Sexo
+
+**Justificación fisiológica:** La susceptibilidad al estrés térmico y a la cardiopatía isquémica presenta un marcado dimorfismo sexual. Los estrógenos endógenos ejercen un efecto cardioprotector mediante la vasodilatación mediada por óxido nítrico endotelial y la atenuación de la respuesta vasoconstrictora simpática frente al frío, mientras que los varones desarrollan aterosclerosis coronaria obstructiva a edades más tempranas. Desagregar las tasas por sexo permite comprobar si la brecha biológica se mantiene constante con independencia del clima provincial.
 
 ```{r grafico_sexo, echo=TRUE}
 # GRÁFICA 2: Comparativa de tasa bruta por Sexo y Provincia
@@ -282,6 +296,10 @@ grafico_sexo <- estudio_por_sexo %>%
 ggsave(filename = "grafico_2_tasa_sexo.png", plot = grafico_sexo, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
 grafico_sexo
 ```
+
+### Dispersión: Choque Térmico Máximo
+
+**Justificación fisiológica y estadística:** Más allá del frío sostenido, las caídas térmicas bruscas entre días consecutivos ($\Delta T = T_{\text{hoy}} - T_{\text{ayer}} < 0$) impiden la aclimatación vascular progresiva, pudiendo desencadenar vasoespasmo coronario agudo y picos hipertensivos repentinos. Para explorar si la caída térmica máxima interdiaria (`Choque_Max_Caida`) se asocia linealmente con la carga hospitalaria (`Tasa_100k`), se ajusta una recta de regresión lineal orientativa (`method = "lm"`, $n = 4$) en formato interactivo.
 
 ```{r grafico_dispersion, echo=TRUE}
 grafico_dispersion <- ggplot(estudio_completo, aes(x = Choque_Max_Caida, y = Tasa_100k)) +
@@ -314,7 +332,9 @@ grafico_dispersion_interactivo <- ggplotly(grafico_dispersion, tooltip = "text")
 grafico_dispersion_interactivo
 ```
 
-## 3.2 Indicadores térmicos y tasa de infartos
+### Frecuencia de Choques Bruscos
+
+**Justificación fisiológica:** Un único episodio extremo anual puede no reflejar el desgaste acumulado del sistema cardiovascular. Evaluar el número total de días con oscilaciones bruscas ($|\Delta T| \ge 3\text{ }^\circ\text{C}$) permite explorar si la repetición de estímulos vasoconstrictores y vasodilatadores agudos se relaciona con una mayor tasa de ingresos hospitalarios.
 
 ```{r indicadores_termicos, echo=TRUE}
 # Indicadores térmicos por provincia junto a la tasa bruta
@@ -340,8 +360,10 @@ ggplot(tabla_indicadores, aes(x = Dias_Choque_Brusco, y = Tasa_100k, label = Pro
   ) +
   theme_classic()
 ```
-## 3.3 Variable de control: fase lunar
-Por indicación del profesor se incluye una variable sin relación causal plausible: la fase lunar. Cada fecha tiene una única fase, igual en todas las provincias, por lo que no puede explicar diferencias entre ellas. Aquí se comprueba si el choque térmico diario (en valor absoluto) cambia según la fase lunar.
+
+### Variable de Control: Fase Lunar
+
+**Justificación metodológica y cronobiológica:** Por indicación del profesor se incluye una variable sin plausibilidad biológica ni mecanismo fisiopatológico conocido sobre la trombosis coronaria o la termorregulación: la fase lunar. Dado que cada fecha tiene una única fase idéntica en todo el territorio, este bloque actúa como control negativo para verificar si el choque térmico medio diario ($|\Delta T|$) muestra variaciones aleatorias entre fases.
 
 ```{r luna_control, echo=TRUE}
 luna_clima <- datos_ambientales %>%
@@ -369,7 +391,10 @@ ggsave(filename = "grafico_4_luna_choque.png", plot = grafico_luna, path = "OUTP
 grafico_luna
 ```
 
-## 3.4 Mapeo espacial (mapSpain)
+### Distribución Espacial (Mapa)
+
+**Justificación geográfica:** La representación cartográfica mediante `mapSpain` permite contextualizar la distribución espacial de las tasas brutas frente a factores geográficos moduladores del clima, como la continentalidad y la altitud (Burgos a 918 m) frente a la amortiguación térmica oceánica (A Coruña) o subtropical (Las Palmas).
+
 ```{r mapa_espacial, echo=TRUE, warning=FALSE, message=FALSE, fig.width=7, fig.height=5, fig.align='center'}
 library(sf)
 library(mapSpain)
@@ -403,13 +428,14 @@ mapa_intensidad <- ggplot(data = mapa_con_datos) +
 
 mapa_intensidad
 ```
-## 3.5 Observaciones de los datos
+
+## 3.3 Observaciones de los datos
 
 * Con tasas brutas, A Coruña (≈ 149 por 100.000) y Las Palmas (≈ 139) quedan por encima de Sevilla (≈ 120) y Burgos (≈ 115).
 * No aparece un gradiente térmico claro. Burgos es la provincia más fría y la que más días con cambios bruscos acumula (39 días con |ΔT| ≥ 3 °C), pero tiene la tasa más baja. Las Palmas no tiene ningún día de ese tipo y su tasa es la segunda más alta.
 * En el gráfico de dispersión, las caídas máximas más negativas (Burgos, Sevilla) se asocian con tasas *menores*, es decir, el sentido contrario al de la hipótesis de partida. Con solo cuatro puntos esta recta es meramente orientativa.
 * Por sexo, la tasa en hombres es entre 2 y 3,5 veces la de las mujeres en las cuatro provincias.
-* La fase lunar es la misma en las cuatro provincias para cada fecha, por lo que no puede explicar diferencias entre ellas. Como variable de control, el choque térmico medio por fase lunar (sección 3.3) es prácticamente constante entre fases dentro de cada provincia, variando apenas unas décimas de grado: 1,64–2,02 °C en Burgos, 1,05–1,68 °C en A Coruña y 0,41–0,44 °C en Las Palmas). Si hay diferencias, se deben al azar (solo 193 días) y no tienen plausibilidad biológica. `Dias_Luna_Llena` (45 días) cuenta los días que el paquete `lunar` clasifica como "Full", un cuarto del periodo, no los días de luna llena exacta.
+* La fase lunar es la misma en las cuatro provincias para cada fecha, por lo que no puede explicar diferencias entre ellas. Como variable de control, el choque térmico medio por fase lunar (sección 3.2, pestaña Variable de Control: Fase Lunar) es prácticamente constante entre fases dentro de cada provincia, variando apenas unas décimas de grado: 1,64–2,02 °C en Burgos, 1,05–1,68 °C en A Coruña y 0,41–0,44 °C en Las Palmas. Si hay diferencias, se deben al azar (solo 193 días) y no tienen plausibilidad biológica. `Dias_Luna_Llena` (45 días) cuenta los días que el paquete `lunar` clasifica como "Full", un cuarto del periodo, no los días de luna llena exacta.
 
 # 4. Conclusiones
 
