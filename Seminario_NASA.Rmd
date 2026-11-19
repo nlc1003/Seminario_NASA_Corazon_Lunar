@@ -289,6 +289,8 @@ composicion_graficos <- grafico_principal / grafico_sexo +
 
 composicion_graficos
 ```
+
+
 *Observaciones de los datos:*
 Al ajustar las cifras por cada 100.000 habitantes (Tasa_100k), se elimina el sesgo del tamaño poblacional de Sevilla y emerge el verdadero patrón epidemiológico y climático: provincias con mayor estrés térmico invernal o amplitud térmica como Burgos y A Coruña muestran tasas relativas superiores frente a climas subtropicales estables como Las Palmas. El gráfico de dispersión con ajuste lineal confirma la tendencia entre caídas interdiarias bruscas de temperatura (valores más negativos de $\Delta T$) y mayores tasas de incidencia hospitalaria. Por otro lado, la tasa ajustada en hombres duplica ampliamente a la de mujeres en todas las provincias, mientras que el número de lunas llenas resulta idéntico en todo el territorio.
 
