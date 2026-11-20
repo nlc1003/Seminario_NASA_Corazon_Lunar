@@ -1,5 +1,6 @@
 ---
-title: "Impacto del estrés térmico ambiental en la incidencia cardiovascular aguda: Un análisis basado en telemetría satelital"
+title: "Impacto del estrés térmico ambiental en la incidencia cardiovascular aguda: Un análisis con datos de reanálisis NASA/POWER"
+subtitle: "Fuentes de Datos Biomédicos y Web Semántica"
 author: "Alex Sanz, Aurora Real y Nayara López de Armentia "
 date: "`r Sys.Date()`"
 output: 
@@ -32,16 +33,24 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 # 1. Introducción
 
 ## 1.1 Contexto Teórico
-El estrés térmico y las variaciones bruscas de temperatura afectan directamente a la fisiología cardiovascular. La exposición a temperaturas extremas y los choques térmicos interdiarios desencadenan respuestas de vasoconstricción y alteraciones en la presión arterial, incrementando el riesgo de sufrir un infarto agudo de miocardio.
+Se ha descrito que tanto el frío como el calor extremos se asocian con más morbilidad y mortalidad cardiovascular (Achebak et al., 2024), y en el norte de España se han observado más ingresos por infarto en invierno y relación con la temperatura aparente (Santurtún et al., 2019). Los mecanismos propuestos incluyen la vasoconstricción y las alteraciones de la presión arterial. Sin embargo, los resultados no son uniformes: algunos trabajos describen que, durante las olas de calor, el exceso de mortalidad cardiovascular no va acompañado de más ingresos hospitalarios (Hanzlíková et al., 2015), y los cambios bruscos de temperatura también se han vinculado con la mortalidad (Plavcová y Kyselý, 2009).
+
+Este trabajo explora esa idea con datos públicos del INE y de NASA/POWER en cuatro provincias de clima contrastado.
+
+Hipótesis de partida: las provincias con perfiles térmicos más extremos (más frías o con más cambios bruscos de un día a otro) presentarían tasas de altas por IAM más altas.
+
+Variable de control: por indicación del profesor se incluye además una variable sin relación causal plausible con la salud cardiovascular, la fase lunar, para comprobar que los patrones observados no aparecen también con una variable arbitraria.
 
 ## 1.2 Objetivos
 **Objetivo General:**
-Analizar el impacto del estrés térmico ambiental y las fases lunares en la incidencia cardiovascular aguda.
+Explorar si existe relación entre el perfil térmico de cuatro provincias españolas de clima contrastado y su tasa bruta de altas hospitalarias por infarto agudo de miocardio (IAM), incluyendo una variable de control sin relación causal plausible (la fase lunar).
 
 **Objetivos Específicos:**
+
 1. Comparar la morbilidad por infarto agudo de miocardio en 4 provincias españolas de contraste climático (Burgos, A Coruña, Las Palmas y Sevilla).
-2. Integrar bases de datos epidemiológicas brutas con telemetría satelital diaria.
-3. Evaluar la influencia del choque térmico interdiario y las temperaturas mínimas en los ingresos hospitalarios.
+2. Integrar bases de datos epidemiológicas del INE con series climáticas diarias de NASA/POWER (reanálisis MERRA-2).
+3. Describir, mediante indicadores térmicos (temperatura media y mínima, caída máxima interdiaria y número de días con cambios bruscos de al menos 3 °C), si los perfiles más extremos se corresponden con tasas de altas más altas.
+4. Comprobar si una variable sin relación causal plausible (la fase lunar) muestra asociación con los indicadores térmicos diarios.
 
 # 2. Metodología e Integración de Datos
 
@@ -49,16 +58,31 @@ Analizar el impacto del estrés térmico ambiental y las fases lunares en la inc
 El flujo de trabajo se estructura dentro del proyecto de RStudio empleando exclusivamente **rutas relativas** (`INPUT/DATA/` y `OUTPUT/`), evitando el uso de `setwd()` para garantizar la reproducibilidad del análisis.
 
 Se han integrado tres fuentes heterogéneas de datos:
-1. **Morbilidad hospitalaria (`infartos_españa.csv`):** Altas hospitalarias por infarto agudo de miocardio procedentes del Instituto Nacional de Estadística (INE).
+1. **Morbilidad hospitalaria (`infartos_españa.csv`):** Altas hospitalarias por infarto agudo de miocardio (CIE-10-MC I21-I22) procedentes del Instituto Nacional de Estadística (INE), correspondientes al año 2024.
 2. **Demografía provincial (`poblacion_provincias.csv`):** Cifras oficiales de población del INE a 1 de julio de 2024 desagregadas por provincia y sexo, indispensables para transformar los recuentos brutos en tasas comparables por cada 100.000 habitantes.
-3. **Telemetría satelital (`temperaturas_*.json`):** Series diarias de temperatura media a 2 metros (`T2M`) y temperatura mínima (`T2M_MIN`) obtenidas del proyecto **NASA/POWER** en formato GeoJSON.
-```{r cargar_ine, results='hide'}
+3. **Datos climáticos (`temperaturas_*.json`):** Series diarias de temperatura media a 2 metros (`T2M`) y temperatura mínima (`T2M_MIN`) del proyecto **NASA/POWER** en formato GeoJSON, del 1 de enero al 12 de julio de 2024 (194 días; el primer día se pierde al calcular el choque térmico, por lo que los indicadores se calculan sobre 193). Proceden del reanálisis MERRA-2, un modelo atmosférico que asimila observaciones de satélite y de superficie, por lo que no son mediciones directas de una estación.
+
+**Nota sobre las coordenadas:** el archivo `temperaturas_santiago.json` corresponde a Santiago de Compostela (42,887 N; -8,568 E; 227 m), que es el punto que representa a la provincia de A Coruña en este trabajo. Burgos se sitúa a 918 m de altitud, lo que contribuye a su perfil frío.
+
+## 2.2. Paquetes utilizados
+* `tidyverse`: importación, limpieza, transformación y gráficos (`readr`, `dplyr`, `ggplot2`...).
+* `jsonlite`: lectura de los archivos GeoJSON de NASA/POWER.
+* `lunar`: cálculo de la fase lunar a partir de la fecha.
+* `DT` y `plotly`: tablas y gráficos interactivos.
+* `sf` y `mapSpain`: cartografía de las provincias españolas.
+
+## 2.3. Procesamiento
+En el siguiente bloque se importan los CSV y los JSON, se limpian y se integran en una sola tabla. Los pasos son: (1) importar el INE respetando la codificación y el separador de miles; (2) filtrar las cuatro provincias; (3) extraer metadatos de los JSON con una función propia; (4) convertir las series diarias a formato ordenado con otra función propia; (5) convertir el valor nulo de la NASA (-999) en `NA`; (6) calcular el choque térmico (temperatura de hoy menos la de ayer) y la fase lunar; (7) calcular indicadores por provincia y la tasa por 100.000 habitantes; (8) guardar el entorno y recargarlo.
+
+
+```{r cargar_ine}
 library(tidyverse)
 library(jsonlite)
 library(lunar)
 library(DT)
 library(plotly)
-library(patchwork)
+library(sf)
+library(mapSpain)
 # 1. Importamos el CSV de infartos del INE protegiendo tildes y separador de miles (".")
 datos_ine <- read_delim(
   "INPUT/DATA/infartos_españa.csv", 
@@ -202,21 +226,35 @@ ls()
 ```
 # 3. Resultados y Análisis Visual
 
-```{r resultados_graficos}
-datatable(estudio_completo, options = list(dom = "t", scrollX = TRUE))
+La homeostasis cardiovascular depende estrechamente de la termorregulación. Ante descensos térmicos ambientales, la activación de termorreceptores cutáneos desencadena una descarga simpática reflejada en vasoconstricción periférica $\alpha$-adrenérgica, aumento de la resistencia vascular periférica y elevación de la presión arterial sistólica y diastólica. Este fenómeno incrementa abruptamente la **poscarga del ventrículo izquierdo** y la demanda miocárdica de oxígeno, favoreciendo la rotura de placas ateroscleróticas vulnerables y la trombosis coronaria.
 
-# GRÁFICA 1: Tasa Ajustada de Infartos (por 100.000 hab.) vs Perfil Térmico y Lunar
+A continuación se presentan los resultados integrados mediante tablas, gráficos interactivos y mapas. Al comparar solo cuatro provincias mediante tasas brutas, el análisis es exploratorio.
+
+## 3.1 Tabla de Datos Integrados
+
+```{r tabla_resultados, echo=TRUE}
+datatable(estudio_completo, options = list(dom = "t", scrollX = TRUE))
+```
+
+## 3.2 Análisis Visual y Exploración Fisiopatológica {.tabset .tabset-fade .tabset-pills}
+
+### Perfil Térmico y Tasa Bruta
+
+**Justificación fisiológica:** La exposición sostenida a temperaturas medias bajas (`T2M`) induce un estado basal de hiperactividad simpática, hemoconcentración y aumento de factores procoagulantes (fibrinógeno y viscosidad plasmática), lo que teóricamente incrementaría la incidencia acumulada de eventos isquémicos. Esta primera visualización contrasta la tasa bruta de altas hospitalarias frente a la temperatura media y la frecuencia de episodios bruscos en cada provincia.
+
+```{r grafico_principal, echo=TRUE}
+# GRÁFICA 1: Tasa bruta de altas por IAM (por 100.000 hab.) vs Perfil Térmico
 grafico_principal <- ggplot(estudio_completo, aes(x = reorder(Provincias, -Tasa_100k), y = Tasa_100k, fill = Temp_Media)) +
   geom_col(colour = "black") +
   geom_text(
-    aes(label = paste0(Tasa_100k, " / 100k\nChoque máx: ", Choque_Max_Caida, "°C\nLunas llenas: ", Dias_Luna_Llena)),
+    aes(label = paste0(Tasa_100k, " / 100k\nCaída máx: ", Choque_Max_Caida, "°C\nDías con |ΔT| ≥ 3 °C: ", Dias_Choque_Brusco)),
     vjust = -0.25,
     size = 3.1
   ) +
   scale_fill_gradient(low = "steelblue", high = "firebrick") +
   scale_y_continuous(expand = expansion(mult = c(0, 0.28))) +
   labs(
-    title = "Tasa Ajustada de Infarto Agudo de Miocardio según Perfil Térmico y Lunar",
+    title = "Tasa bruta de altas por Infarto Agudo de Miocardio según Perfil Térmico",
     subtitle = "Altas hospitalarias por cada 100.000 habitantes en 4 provincias de contraste climático",
     x = "Provincia",
     y = "Tasa de Altas por 100.000 habitantes",
@@ -224,9 +262,16 @@ grafico_principal <- ggplot(estudio_completo, aes(x = reorder(Provincias, -Tasa_
   ) +
   theme_classic()
 
+ggsave(filename = "grafico_1_tasa_clima.png", plot = grafico_principal, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
 grafico_principal
+```
 
-# GRÁFICA 2: Comparativa de Tasa Ajustada por Sexo y Provincia
+### Estratificación por Sexo
+
+**Justificación fisiológica:** La susceptibilidad al estrés térmico y a la cardiopatía isquémica presenta un marcado dimorfismo sexual. Los estrógenos endógenos ejercen un efecto cardioprotector mediante la vasodilatación mediada por óxido nítrico endotelial y la atenuación de la respuesta vasoconstrictora simpática frente al frío, mientras que los varones desarrollan aterosclerosis coronaria obstructiva a edades más tempranas. Desagregar las tasas por sexo permite comprobar si la brecha biológica se mantiene constante con independencia del clima provincial.
+
+```{r grafico_sexo, echo=TRUE}
+# GRÁFICA 2: Comparativa de tasa bruta por Sexo y Provincia
 grafico_sexo <- estudio_por_sexo %>%
   filter(Sexo != "Ambos sexos") %>%
   ggplot(aes(x = reorder(Provincias, -Tasa_100k), y = Tasa_100k, fill = Sexo)) +
@@ -241,25 +286,35 @@ grafico_sexo <- estudio_por_sexo %>%
   scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
   labs(
     title = "Tasa de Altas Hospitalarias por Infarto Agudo de Miocardio según Sexo",
-    subtitle = "Incidencia ajustada por cada 100.000 habitantes de cada sexo (Datos INE)",
+    subtitle = "Tasa bruta de altas por cada 100.000 habitantes de cada sexo (Datos INE)",
     x = "Provincia",
     y = "Tasa por 100.000 habitantes",
     fill = "Sexo"
   ) +
   theme_classic()
 
+ggsave(filename = "grafico_2_tasa_sexo.png", plot = grafico_sexo, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
 grafico_sexo
+```
 
-# GRÁFICA 3 (SCATTER PLOT): Relación entre Choque Térmico Máximo y Tasa de Infartos
+### Dispersión: Choque Térmico Máximo
+
+**Justificación fisiológica y estadística:** Más allá del frío sostenido, las caídas térmicas bruscas entre días consecutivos ($\Delta T = T_{\text{hoy}} - T_{\text{ayer}} < 0$) impiden la aclimatación vascular progresiva, pudiendo desencadenar vasoespasmo coronario agudo y picos hipertensivos repentinos. Para explorar si la caída térmica máxima interdiaria (`Choque_Max_Caida`) se asocia linealmente con la carga hospitalaria (`Tasa_100k`), se ajusta una recta de regresión lineal orientativa (`method = "lm"`, $n = 4$) en formato interactivo.
+
+```{r grafico_dispersion, echo=TRUE}
 grafico_dispersion <- ggplot(estudio_completo, aes(x = Choque_Max_Caida, y = Tasa_100k)) +
-  geom_point(aes(color = Provincias), size = 4.5) +
+  geom_point(
+    aes(color = Provincias, 
+        text = paste0(Provincias, "<br>Tasa: ", Tasa_100k, "<br>Choque Máx: ", Choque_Max_Caida, " ºC")), 
+    size = 4.5
+  ) +
   geom_smooth(method = "lm", se = FALSE, color = "darkgray", linetype = "dashed") +
   geom_text(aes(label = Provincias), vjust = -1.1, size = 3.4) +
   scale_y_continuous(expand = expansion(mult = c(0.15, 0.20))) +
   scale_x_continuous(expand = expansion(mult = c(0.15, 0.15))) +
   labs(
     title = "Relación entre la Severidad del Choque Térmico y la Tasa de Infartos",
-    subtitle = "Regresión lineal entre la caída térmica máxima interdiaria (ΔT) y la tasa por 100.000 hab.",
+    subtitle = "Recta orientativa (solo 4 provincias) entre la caída térmica máxima interdiaria (ΔT) y la tasa por 100.000 hab.",
     x = "Choque Térmico Máximo Interdiario — Caída ΔT (°C)",
     y = "Tasa de Altas por 100.000 habitantes",
     color = "Provincia"
@@ -267,39 +322,149 @@ grafico_dispersion <- ggplot(estudio_completo, aes(x = Choque_Max_Caida, y = Tas
   theme_classic() +
   theme(legend.position = "none")
 
-grafico_dispersion
-
-# Guardamos las 3 gráficas en la carpeta OUTPUT/
-ggsave(filename = "grafico_1_tasa_clima_luna.png", plot = grafico_principal, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
-ggsave(filename = "grafico_2_tasa_sexo.png", plot = grafico_sexo, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
 ggsave(filename = "grafico_3_dispersion_choque.png", plot = grafico_dispersion, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
-# 1. Interactividad para el scatter plot
+
+# Esto fuerza la interactividad con Plotly
 grafico_dispersion_interactivo <- ggplotly(grafico_dispersion, tooltip = "text") %>%
   layout(
     hoverlabel = list(bgcolor = "white", bordercolor = "black", font = list(color = "black"))
   )
 grafico_dispersion_interactivo
-
-# 2. Composición de gráficos estáticos (Barras General + Barras Sexo)
-composicion_graficos <- grafico_principal / grafico_sexo + 
-  plot_annotation(
-    title = 'IMPACTO DEL ESTRÉS TÉRMICO Y SEXO EN LA SALUD CARDIOVASCULAR',
-    theme = theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
-  )
-
-composicion_graficos
 ```
 
+### Frecuencia de Choques Bruscos
+
+**Justificación fisiológica:** Un único episodio extremo anual puede no reflejar el desgaste acumulado del sistema cardiovascular. Evaluar el número total de días con oscilaciones bruscas ($|\Delta T| \ge 3\text{ }^\circ\text{C}$) permite explorar si la repetición de estímulos vasoconstrictores y vasodilatadores agudos se relaciona con una mayor tasa de ingresos hospitalarios.
+
+```{r indicadores_termicos, echo=TRUE}
+# Indicadores térmicos por provincia junto a la tasa bruta
+tabla_indicadores <- estudio_completo %>%
+  select(Provincias, Tasa_100k, Temp_Media, Temp_Min_Absoluta,
+         Choque_Max_Caida, Dias_Choque_Brusco) %>%
+  arrange(desc(Tasa_100k))
+
+datatable(tabla_indicadores, options = list(dom = "t", scrollX = TRUE))
+```
+
+```{r grafico_dias_choque, echo=TRUE}
+ggplot(tabla_indicadores, aes(x = Dias_Choque_Brusco, y = Tasa_100k, label = Provincias)) +
+  geom_point(size = 4, colour = "firebrick") +
+  geom_text(vjust = -1.1, size = 3.4) +
+  scale_x_continuous(expand = expansion(mult = c(0.1, 0.15))) +
+  scale_y_continuous(expand = expansion(mult = c(0.15, 0.2))) +
+  labs(
+    title = "Días de cambio brusco de temperatura y tasa de infartos",
+    subtitle = "Días con |ΔT| ≥ 3 °C entre días consecutivos (enero-julio 2024)",
+    x = "Número de días con |ΔT| ≥ 3 °C",
+    y = "Tasa bruta de altas por 100.000 habitantes"
+  ) +
+  theme_classic()
+```
+
+### Variable de Control: Fase Lunar
+
+**Justificación metodológica y cronobiológica:** Por indicación del profesor se incluye una variable sin plausibilidad biológica ni mecanismo fisiopatológico conocido sobre la trombosis coronaria o la termorregulación: la fase lunar. Dado que cada fecha tiene una única fase idéntica en todo el territorio, este bloque actúa como control negativo para verificar si el choque térmico medio diario ($|\Delta T|$) muestra variaciones aleatorias entre fases.
+
+```{r luna_control, echo=TRUE}
+luna_clima <- datos_ambientales %>%
+  group_by(Provincias, Fase_Lunar) %>%
+  summarise(
+    Choque_Medio = round(mean(abs(Choque_Termico), na.rm = TRUE), 2),
+    Dias         = n(),
+    .groups = "drop"
+  )
+
+datatable(luna_clima, options = list(dom = "t", scrollX = TRUE))
+
+grafico_luna <- ggplot(luna_clima, aes(x = Fase_Lunar, y = Choque_Medio, fill = Provincias)) +
+  geom_col(position = "dodge", colour = "black") +
+  labs(
+    title = "Choque térmico medio según la fase lunar",
+    subtitle = "Variable de control sin relación causal plausible (enero-julio 2024)",
+    x = "Fase lunar",
+    y = "Choque térmico medio |ΔT| (°C)",
+    fill = "Provincia"
+  ) +
+  theme_classic()
+
+ggsave(filename = "grafico_4_luna_choque.png", plot = grafico_luna, path = "OUTPUT", width = 22, height = 13, units = "cm", dpi = 300)
+grafico_luna
+```
+
+HEAD
 
 *Observaciones de los datos:*
 Al ajustar las cifras por cada 100.000 habitantes (Tasa_100k), se elimina el sesgo del tamaño poblacional de Sevilla y emerge el verdadero patrón epidemiológico y climático: provincias con mayor estrés térmico invernal o amplitud térmica como Burgos y A Coruña muestran tasas relativas superiores frente a climas subtropicales estables como Las Palmas. El gráfico de dispersión con ajuste lineal confirma la tendencia entre caídas interdiarias bruscas de temperatura (valores más negativos de $\Delta T$) y mayores tasas de incidencia hospitalaria. Por otro lado, la tasa ajustada en hombres duplica ampliamente a la de mujeres en todas las provincias, mientras que el número de lunas llenas resulta idéntico en todo el territorio.
 
-# 4. Conclusiones
-1. *Importancia de la estandarización demográfica:* El cálculo de tasas por 100.000 habitantes demuestra que los recuentos absolutos enmascaran el riesgo real; al ajustar por población, los perfiles térmicos fríos y con mayor choque térmico interdiario presentan mayor carga relativa de ingresos por infarto agudo de miocardio.
-2. *Desigualdad por sexo y ausencia de efecto lunar:* La incidencia ajustada mantiene una marcada brecha epidemiológica desfavorable para los varones en las cuatro geografías estudiadas, mientras que el ciclo lunar no muestra variabilidad diferencial asociada al fenómeno.
-3. *Limitación metodológica (granularidad temporal):* Aunque las tasas están ajustadas poblacionalmente, los registros del INE tienen periodicidad anual agregada frente a la resolución diaria de NASA/POWER, por lo que los resultados describen asociaciones ecológicas provinciales y no causalidad clínica individual día a día.
+### Distribución Espacial (Mapa)
 
-# 5. Referencias
-* Instituto Nacional de Estadística (INE). (2024). Altas hospitalarias por diagnóstico, provincia y sexo.
-* Instituto Nacional de Estadística (INE). (2024). Cifras oficiales de población por provincias.
-* NASA Prediction Of Worldwide Energy Resources (POWER). (2024). Telemetría satelital de temperaturas a 2 metros (T2M).
+**Justificación geográfica:** La representación cartográfica mediante `mapSpain` permite contextualizar la distribución espacial de las tasas brutas frente a factores geográficos moduladores del clima, como la continentalidad y la altitud (Burgos a 918 m) frente a la amortiguación térmica oceánica (A Coruña) o subtropical (Las Palmas).
+
+```{r mapa_espacial, echo=TRUE, warning=FALSE, message=FALSE, fig.width=7, fig.height=5, fig.align='center'}
+library(sf)
+library(mapSpain)
+
+mapa_espana_prov <- esp_get_prov(moveCAN = TRUE)
+
+estudio_corregido_mapa <- estudio_completo %>%
+  mutate(
+    cpro = case_when(
+            Provincias == "09 Burgos" ~ "09",
+      Provincias == "41 Sevilla" ~ "41",
+      Provincias == "35 Palmas, Las" ~ "35",
+      Provincias == "15 Coruña, A" ~ "15",
+      TRUE ~ NA_character_
+    )
+  )
+
+mapa_con_datos <- mapa_espana_prov %>%
+  left_join(estudio_corregido_mapa, by = "cpro")
+
+mapa_intensidad <- ggplot(data = mapa_con_datos) +
+  geom_sf(aes(fill = Tasa_100k), color = "white", size = 0.2) +
+  geom_sf_text(aes(label = prov.shortname.es), size = 2, color = "black", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_gradient(low = "#F4D03F", high = "#922B21", name = "Tasa por 100k", na.value = "gray85") +
+  theme_void() +
+  labs(title = "Distribución Espacial de la Tasa de Infarto Agudo de Miocardio") +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  )
+
+mapa_intensidad
+```
+
+## 3.3 Observaciones de los datos
+
+* Con tasas brutas, A Coruña (≈ 149 por 100.000) y Las Palmas (≈ 139) quedan por encima de Sevilla (≈ 120) y Burgos (≈ 115).
+* No aparece un gradiente térmico claro. Burgos es la provincia más fría y la que más días con cambios bruscos acumula (39 días con |ΔT| ≥ 3 °C), pero tiene la tasa más baja. Las Palmas no tiene ningún día de ese tipo y su tasa es la segunda más alta.
+* En el gráfico de dispersión, las caídas máximas más negativas (Burgos, Sevilla) se asocian con tasas *menores*, es decir, el sentido contrario al de la hipótesis de partida. Con solo cuatro puntos esta recta es meramente orientativa.
+* Por sexo, la tasa en hombres es entre 2 y 3,5 veces la de las mujeres en las cuatro provincias.
+* La fase lunar es la misma en las cuatro provincias para cada fecha, por lo que no puede explicar diferencias entre ellas. Como variable de control, el choque térmico medio por fase lunar (sección 3.2, pestaña Variable de Control: Fase Lunar) es prácticamente constante entre fases dentro de cada provincia, variando apenas unas décimas de grado: 1,64–2,02 °C en Burgos, 1,05–1,68 °C en A Coruña y 0,41–0,44 °C en Las Palmas. Si hay diferencias, se deben al azar (solo 193 días) y no tienen plausibilidad biológica. `Dias_Luna_Llena` (45 días) cuenta los días que el paquete `lunar` clasifica como "Full", un cuarto del periodo, no los días de luna llena exacta.
+
+
+# 4. Conclusiones
+
+1. *Sin patrón térmico claro:* con estos datos no se observa que las provincias más frías o con más cambios bruscos de temperatura tengan tasas de altas por IAM más altas. Burgos, la más extrema en frío y en choques térmicos, presenta la tasa más baja de las cuatro, por lo que la hipótesis de partida no se confirma. Esto no descarta un efecto de la temperatura, solo indica que este diseño no lo detecta.
+2. *Brecha por sexo:* la tasa en hombres es entre 2 y 3,5 veces la de las mujeres en las cuatro provincias, lo que constituye el patrón más consistente de todo el análisis.
+3. *Fase lunar como variable de control:* la fase lunar es idéntica en las cuatro provincias, por lo que no puede explicar las diferencias entre ellas. Se ha empleado como variable sin relación causal plausible para contrastar si los indicadores térmicos diarios varían con ella (observándose valores prácticamente estables entre fases dentro de cada provincia, con diferencias de apenas unas décimas que se deben al azar muestral). No ha podido contrastarse directamente con los infartos porque no se dispone de altas con resolución diaria.
+4. *Tasas brutas, no ajustadas:* dividir por la población permite comparar provincias de distinto tamaño, pero no elimina el efecto de la estructura de edad. Las diferencias entre provincias pueden deberse en parte a ella.
+
+# 5. Limitaciones
+
+* **Desajuste temporal:** el clima cubre 194 días (enero-julio de 2024) y las altas del INE son anuales; la población es de julio de 2024. Los resultados son asociaciones ecológicas entre provincias, no causalidad individual.
+* **Muestra mínima:** con n = 4 provincias, la recta de regresión es orientativa y no permite inferencia estadística.
+* **Variable de resultado:** las altas hospitalarias no equivalen a incidencia. Incluyen reingresos y no recogen los infartos que no llegan a hospitalización. Habría que comprobar si el INE las asigna por provincia de residencia o del hospital.
+* **Fuente climática:** NASA/POWER es un reanálisis con malla de unas decenas de kilómetros, no una estación. Un único punto representa a toda la provincia (en A Coruña, Santiago de Compostela).
+* **Factores no controlados:** edad, prevalencia de factores de riesgo cardiovascular y acceso a la atención sanitaria.
+
+# 6. Referencias
+* Instituto Nacional de Estadística (INE). (2024). *Encuesta de Morbilidad Hospitalaria: altas por diagnóstico, provincia y sexo*. https://www.ine.es 
+* Instituto Nacional de Estadística (INE). (2024). *Cifras de población por provincias, 1 de julio de 2024*. https://www.ine.es 
+* NASA Prediction Of Worldwide Energy Resources (POWER). (2024). *Daily API, parámetros T2M y T2M_MIN*. https://power.larc.nasa.gov/
+* Gelaro, R., et al. (2017). The Modern-Era Retrospective Analysis for Research and Applications, Version 2 (MERRA-2). *Journal of Climate, 30*(14), 5419-5454.
+* Wickham, H., et al. (2019). Welcome to the tidyverse. *Journal of Open Source Software, 4*(43), 1686.
+* Achebak, H., Rey, G., Lloyd, S. J., Quijal-Zamorano, M., Méndez-Turrubiates, R. F., & Ballester, J. (2024). Ambient temperature and risk of cardiovascular and respiratory adverse health outcomes: a nationwide cross-sectional study from Spain. PMID 38364198. https://pubmed.ncbi.nlm.nih.gov/38364198/
+* Santurtún, A., Fdez-Arroyabe, P., Royé, D., Zarrabeitia, M. T., & Álvarez Gutiérrez, A. (2019). Papel de la temperatura aparente y de los contaminantes atmosféricos en los ingresos por infarto agudo de miocardio en el norte de España. *Revista Española de Cardiología, 72*, 634-640. https://doi.org/10.1016/j.recesp.2018.05.032
+* Hanzlíková, H., Plavcová, E., Kynčl, J., Kříž, B., & Kyselý, J. (2015). Contrasting patterns of hot spell effects on morbidity and mortality for cardiovascular diseases in the Czech Republic, 1994-2009. *International Journal of Biometeorology, 59*(11), 1673-1684. https://pubmed.ncbi.nlm.nih.gov/25744153
+* Plavcová, E., & Kyselý, J. (2009). Effects of sudden air temperature and pressure changes on mortality in the Czech Republic. *Epidemiologie, mikrobiologie, imunologie*. https://www.prolekare.cz/en/journals/epidemiology-microbiology-immunology/2009-2/effects-of-sudden-air-temperature-and-pressure-changes-on-mortality-in-the-czech-republic-4683
